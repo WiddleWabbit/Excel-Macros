@@ -1,0 +1,141 @@
+function onOpen() {
+
+  var ui = SpreadsheetApp.getUi();
+
+  ui.createMenu('Special Functions')
+  .addItem('Advanced Find/Replace', 'advancedReplace')
+  .addToUi();
+  
+}
+
+function letterToNumbers(string) {
+  
+    string = string.getResponseText().toUpperCase();
+    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', sum = 0, i;
+    for (i = 0; i < string.length; i++) {
+        sum += Math.pow(letters.length, i) * (letters.indexOf(string.substr(((i + 1) * -1), 1)) + 1);
+    }
+  
+    return sum;
+  
+}
+
+function isLetter(str) {
+  
+  return str.length === 1 && str.match(/[a-z]/i);
+  
+}
+
+function getColumn(varName, message, ui) {
+  
+  var valid = 0;
+  while (valid == 0) {
+    
+    var varName = ui.prompt(message);
+    
+    if (varName.getSelectedButton() != ui.Button.OK){
+      return 0;
+    } else if (! isLetter(varName.getResponseText())) {
+      ui.alert('Please enter a single letter to reference the column..');
+    } else {
+      valid = 1;
+    }
+    
+  }
+  
+  return varName; 
+  
+}
+
+function getXValue(varName, message, ui) {
+  
+  var valid = 0;
+  while (valid == 0) {
+    
+    var varName = ui.prompt(message);
+    
+    if (varName.getSelectedButton() != ui.Button.OK){
+      return 0;
+    } else if (varName.getResponseText() == "" ) {
+      ui.alert('Please enter a value..');
+    } else {
+      valid = 1;
+    }
+    
+  }
+  
+  return varName;
+
+}
+
+function advancedReplace() {
+
+  var ui = SpreadsheetApp.getUi();
+  
+  checkColumn = getColumn('checkColumn','Which column are we looking for a value in? (Column Letter)', ui);
+  if (checkColumn == 0) {
+    return;
+  }
+  
+  var checkString = getXValue('checkString', 'What value are we looking for in the column?', ui);
+  if (checkString == 0 ) {
+    return; 
+  }
+
+  setColumn = getColumn('setColumn', 'If we find the value in the column, which column do you want us to replace the value of? (Column Letter)', ui);
+  if (setColumn == 0) {
+    return;
+  }
+  
+  var setString = getXValue('setString', 'If we find the value, what do you want to set the other column to the value of?', ui);
+  if (setString == 0 ) {
+    return; 
+  }
+  
+  var exactMatch = ui.alert('Match Entire Cell Contents?', ui.ButtonSet.YES_NO);
+  if (exactMatch == ui.Button.YES) {
+    exactMatch = 1;
+  } else if (exactMatch == ui.Button.NO) {
+    exactMatch = 0;
+  } else {
+    return;
+  }
+
+  var checkColumn = letterToNumbers(checkColumn) -1;
+  var setColumn = letterToNumbers(setColumn) -1;
+  var checkString = checkString.getResponseText();
+  var setString = setString.getResponseText();
+  
+  var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadSheet.getActiveSheet();
+  var rangeData = sheet.getDataRange();
+  var lastColumn = rangeData.getLastColumn();
+  var lastRow = rangeData.getLastRow();
+  var searchRange = sheet.getRange(1,1, lastRow, lastColumn);
+  
+  if (exactMatch == 1) {
+    
+    // Exact Match
+    var rangeValues = searchRange.getValues();
+    for ( i = 0; i < lastRow; i++){
+      Logger.log(rangeValues[i][checkColumn]);
+      if (rangeValues[i][checkColumn] == checkString) {
+        sheet.getRange(i+1,setColumn+1).setValue(setString);
+      }
+    }
+    
+  } else if (exactMatch == 0) {
+    
+    // Not Exact Match
+    var rangeValues = searchRange.getValues();
+    for (i = 0; i < lastRow; i++){
+      if (rangeValues[i][checkColumn].indexOf(checkString)>-1) {
+        sheet.getRange(i+1,setColumn+1).setValue(setString);
+      }
+    }
+    
+  }
+  
+  return;
+
+}
